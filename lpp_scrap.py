@@ -6,14 +6,14 @@ from io import BytesIO
 import shutil
 from bs4 import BeautifulSoup
 import re
+import polars as pl
+import time
 
 
-def download_code_list()->list:
+def download_code_list(version:str, dl_folder:str)->list:
     """Download dbf file from AMELI and extract list of LPP code"""
     
     # download zip file from AMELI
-    version = "802"
-    dl_folder = "/tmp/lpp_db"
     url = f"http://www.codage.ext.cnamts.fr/codif/tips/download_file.php?filename=tips/LPP{version}.zip"
     response = requests.get(url)
     if response.status_code == 200:
@@ -43,7 +43,7 @@ def download_code_list()->list:
     return code_list
 
 
-def scrap_lpp_code(lpp_code):
+def scrap_lpp_code(lpp_code:str) -> dict:
     """Extract information associated to a LPP code"""
 
     # scrap page
@@ -180,14 +180,41 @@ def scrap_lpp_code(lpp_code):
     return data
     
 
+
+def run(version, dl_folder):
+    """ """
+
+    # download LPP code
+    code_list = download_code_list(version, dl_folder)    
+
+    # scrap codes informations
+    data = []
+    for code in code_list:
+        data.append(scrap_lpp_code(code))
+        time.sleep(1)
+
+    # return dataframe
+    return pl.DataFrame(data)
+
     
+
+    
+
+    
+
+    
+
 
 
 
 if __name__ == "__main__":
 
-    # code_list = download_code_list()    
+    version = "802"
+    dl_folder = "/tmp/lpp_db"
     c = "1152380"
     c = "3299070"
 
-    scrap_lpp_code(c)
+    # code_list = download_code_list()    
+    # scrap_lpp_code(c)
+    df = run(version, dl_folder)
+    df.write_parquet("lpp_infos.parquet")

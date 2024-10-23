@@ -1,2 +1,3 @@
 dbfread
 bs4
+polars
