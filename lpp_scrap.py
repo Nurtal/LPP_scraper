@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 import re
 
 
-
 def download_code_list()->list:
     """Download dbf file from AMELI and extract list of LPP code"""
     
@@ -59,9 +58,10 @@ def scrap_lpp_code(lpp_code):
 
         for s in stuff:
             text = s.get_text()
-            # print(text)
-            # print("-"*45)
-            m_list.append(text)
+            if not re.search("\nFiche\n", text):
+                # print(text)
+                # print("-"*45)
+                m_list.append(text)
 
     else:
         print(f"Failed to retrieve the page. Status code: {response.status_code}")
@@ -81,15 +81,12 @@ def scrap_lpp_code(lpp_code):
         'age_max':'',
         'nature_prestation':'',
         'type_prestation':'',
-        'chapitre':''
+        'chapitre':'',
+        'arbre':''
         
     }
     for x in range(len(m_list)):
         text = m_list[x]
-
-
-        # print(text)
-        print("-"*45)
 
         # hunt designation & description
         if re.search('^Désignation', text):
@@ -146,20 +143,41 @@ def scrap_lpp_code(lpp_code):
         # hunt Nature prestation
         if re.search('^Nature de prestation:', text):
             n = text.split('Nature de prestation:')
-            print(n)
-            # if len(a) > 1:
-            #     data['age_max'] = a[1].replace('Néant', '')
+            if len(n) > 1:
+                data['nature_prestation'] = n[1].replace("\\xa0", "")
 
         # hunt type prestation
+        if re.search('^Type de prestation:', text):
+            t = text.split('Type de prestation:')
+            if len(n) > 1:
+                data['type_prestation'] = t[1].replace("\\xa0", "")
 
-        # hunt chapitre
+        # hunt chapitre & arborescence
+        if re.search('Arborescence', text):
+            c = text.split("\n")
+            arbre = ""
+            e_cmpt = 0
+            start = 999
+            for e in c:
+
+                # chapitre
+                if re.search('^TITRE [0-9]', e):
+                    data['chapitre'] = e
+                    start = e_cmpt
+
+                # branches
+                if e_cmpt >= start and e != "":
+                    arbre += f"{e}/"
+
+                e_cmpt +=1
+            data['arbre'] = arbre[:-1]
 
     # catch description
-    if description_rank != -1 and len(m_list) <= description_rank:
+    if description_rank != -1:
         data['description'] = m_list[description_rank]
 
-        
-
+    # return scraped data
+    return data
     
 
     
