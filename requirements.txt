@@ -1,3 +1,4 @@
 dbfread
+requests
 bs4
 polars
